@@ -11,7 +11,7 @@ plan:
         - contract-publish:
             contract-name: stx-defi
             expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            cost: 72310
+            cost: 72170
             path: contracts/stx-defi.clar
             anchor-block-only: true
             clarity-version: 3
