@@ -1,88 +1,95 @@
-﻿# bitcoin.defi
+# bitcoin.defi
 
-bitcoin.defi is a web3 dashboard focused on risk managed copy trading over Bitcoin L2 (Stacks). The project bundles three dashboards: the core copy trading hub, an AI driven sizing engine, and a macro flow console powered by OpenBB.
+bitcoin.defi is a Web3 investing console that combines a risk-managed copy trading hub with two data companions: an AI sizing engine and an OpenBB macro dashboard. The product targets Bitcoin L2 (Stacks) users who want transparent sizing, hedging ideas, and coverage options without promising execution or guaranteed yield.
 
 ## Dashboards
 
-- **Home (/)** – Hero + overview metrics, highlighted strategies, optimisation insights (vol targeting, delta hedging, liquidity routing) and a catalogue of Web3 coverage/insurance protocols.
-- **AI Risk Strategy (/ai)** – Hourly TCN probability model, volatility targeting, on-chain risk brake, and recommended exposure by risk profile (Conservador/Balanceado/Agresivo).
-- **OpenBB Macro (/openbb)** – Pricing, flows, narratives and macro highlights consolidated from OpenBB research (Coingecko, Binance Futures, on-chain feeds). 
+- **Home (`/`)** - Marketing hero, KPI tiles, recommended strategies, optimisation playbooks (vol targeting, delta hedging, liquidity routing), and curated Web3 protection and coverage providers.
+- **AI Risk Strategy (`/ai`)** - TCN-based probability stub, volatility targeting, on-chain risk brake, and recommended exposure before and after the brake for Conservador, Balanceado, and Agresivo profiles (always including legal disclaimers).
+- **OpenBB Macro (`/openbb`)** - Market flows, perp metrics, narratives, and macro highlights sourced from OpenBB research (Coingecko, Binance, on-chain). Lives on its own page so the main landing stays focused on bitcoin.defi.
 
-Use the top navigation bar to switch between dashboards.
+Use the top navigation to move between dashboards.
 
-## Tech stack
+## Architecture
 
-- **Frontend**: Next.js 16 (App Router) + React 19 + Tailwind CSS v4.
-- **State/UI**: Framer Motion, custom hooks, client components.
-- **Web3**: @stacks/connect (v8 connect API), @stacks/network.
-- **Data**: Custom SQLite wrapper with deterministic fallbacks (Coingecko/Binance mocks) – see src/lib/sqlite.ts.
+- **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Framer Motion transitions.
+- **Wallets**: `@stacks/connect` v8 (Stacks). MetaMask support is optional; disable the extension locally if it spams JSON-RPC errors.
+- **Server/Data**: Lightweight SQLite layer via `src/lib/sqlite.ts` (Prisma replaced) plus deterministic mock fallbacks for Coingecko, Binance, OpenBB, and Chainalysis when API keys are missing.
+- **Strategy engine**: `strategy-engine/` hosts the TCN stub, volatility targeting, on-chain risk brake, and hourly pipeline orchestrator.
+- **Automation**: `scripts/` wraps setup, seeding, ingestion, and cron trigger helpers.
+
+## Prerequisites
+
+- Node.js 20 LTS
+- npm 10+
+- Git (access to `https://github.com/leocagli/bitcoin.defi.git`)
+- Optional: disable unrelated browser wallet extensions during local QA to avoid noisy console errors.
+
+## Environment variables
+
+Create `.env.local` (and mirror in Vercel):
+
+```bash
+DATABASE_URL="file:./data/ai-signals.db"
+OPENBB_API_KEY=""            # optional; enables live OpenBB integration when present
+CHAINALYSIS_API_KEY=""       # optional; otherwise the mock risk score is used
+CHAINALYSIS_RISK_ENDPOINT="https://api.chainalysis.com/v0/exchange-flows/{asset}"
+CRON_SECRET=""               # shared secret for /api/cron/ai-signal
+NEXT_PUBLIC_STACKS_NETWORK="mainnet"
+NEXT_PUBLIC_APP_NAME="bitcoin.defi"
+```
+
+## One-command local setup
+
+```bash
+npm install
+npm run setup:auto        # creates SQLite schema, seeds backtests, ingests signals, runs lint
+# or:
+npm run setup:local       # same as above but keeps `npm run dev` running on port 3000
+```
+
+Then visit:
+
+- http://localhost:3000 -> home dashboard
+- http://localhost:3000/ai -> AI sizing engine
+- http://localhost:3000/openbb -> OpenBB macro dashboard
 
 ## npm scripts
 
 | Script | Description |
 | ------ | ----------- |
-| 
-pm run dev | Start the Next.js dev server (defaults to port 3000). |
-| 
-pm run setup:auto | Bootstraps env, creates SQLite schema, seeds backtests, ingests signals and runs lint (no dev server). |
-| 
-pm run setup:local | Same as above but ends running 
-pm run dev. |
-| 
-pm run db:init-sqlite | Ensures the SQLite schema exists. |
-| 
-pm run db:seed | Populates the BacktestStat table with mock research data. |
-| 
-pm run signal:ingest | Generates hourly AI signal snapshots for BTC/ETH. |
-| 
-pm run lint | ESLint check. |
+| `npm run dev` | Next.js dev server (default port 3000). |
+| `npm run setup:auto` | Bootstrap env, init DB, seed backtests, ingest signals, run lint (headless). |
+| `npm run setup:local` | Same as `setup:auto` but finishes by running `npm run dev`. |
+| `npm run db:init-sqlite` | Ensures the SQLite schema exists. |
+| `npm run db:seed` | Seeds `BacktestStat` with canned research metrics. |
+| `npm run signal:ingest` | Runs the hourly AI strategy pipeline for BTC and ETH. |
+| `npm run lint` | ESLint check. |
 
-## Environment variables
+## API surface (AI risk engine)
 
-`
-DATABASE_URL="file:./data/ai-signals.db"
-OPENBB_API_KEY=            # optional (future real integration)
-CHAINALYSIS_API_KEY=       # optional, otherwise fallback risk score is used
-CHAINALYSIS_RISK_ENDPOINT="https://api.chainalysis.com/v0/exchange-flows/{asset}"
-CRON_SECRET=               # token to trigger /api/cron/ai-signal manually
-NEXT_PUBLIC_STACKS_NETWORK=mainnet
-NEXT_PUBLIC_APP_NAME=bitcoin.defi
-`
+Every response appends the legal copy: "Backtest historico. Resultados pasados no garantizan rendimientos futuros. No es asesoramiento financiero."
 
-## Local bootstrap
+- `GET /api/ai-signal/current?asset=BTC` - Latest probability, raw signal, recommended exposure before and after the on-chain brake plus metadata.
+- `GET /api/ai-signal/history?asset=BTC&from=...&to=...` - Chronological hourly snapshots for charting.
+- `GET /api/ai-signal/backtest?asset=BTC` - Mocked Sharpe, CAGR, max drawdown, equity curve.
+- `GET /api/cron/ai-signal?token=${CRON_SECRET}` - Cron hook used by Vercel (hourly ingest).
 
-1. 
-pm install
-2. 
-pm run setup:auto (or 
-pm run setup:local if you want the dev server running at the end).
-3. Visit http://localhost:3000 for the home dashboard, /ai for the sizing engine, /openbb for macro flows.
+## Deployment notes
 
-## API endpoints (AI risk engine)
+1. Mirror `.env.local` values into Vercel project settings (DATABASE_URL, CHAINALYSIS_*, CRON_SECRET, optional OPENBB_API_KEY).
+2. Vercel cron (configured in `vercel.json`) hits `/api/cron/ai-signal` hourly to ingest fresh snapshots.
+3. Manual refresh: `curl https://<vercel-app>/api/cron/ai-signal?token=$CRON_SECRET`.
 
-All responses include the legal disclaimer string.
+## Troubleshooting
 
-- GET /api/ai-signal/current?asset=BTC – latest snapshot (probability, signal, recommended exposure before/after brake, perp metrics).
-- GET /api/ai-signal/history?asset=BTC&from=...&to=... – chronological hourly snapshots for charting.
-- GET /api/ai-signal/backtest?asset=BTC – mocked backtest stats (Sharpe, CAGR, max drawdown, equity curve).
+- MetaMask errors: disable the extension locally if you see "Internal JSON-RPC error". The Stacks connect flow continues to work.
+- Empty dashboards: re-run `npm run setup:auto` (or `npm run setup:local`) to recreate the SQLite DB and ingest baseline rows.
+- Switching data providers: after swapping mock data for real OpenBB or Chainalysis responses, run `npm run db:seed` and `npm run signal:ingest`.
 
-## Project structure
+## Roadmap
 
-`
-src/
-  app/            # routing (/, /ai, /openbb, api routes)
-  components/    # UI building blocks (home dashboard, AI blocks, OpenBB panels, navigation, wallet)
-  data/          # mock datasets (strategies, risk insights, OpenBB snapshots)
-  lib/           # utilities (format helpers, sqlite wrapper)
-  strategy-engine/ # TCN placeholder, risk mapper, on-chain brake, pipeline orchestrator
-  types/         # shared TypeScript types
-scripts/         # CLI helpers (setup, seeding, ingestion)
-data/            # SQLite file output (git ignored)
-`
-
-## Roadmap ideas
-
-- Replace fallbacks with live OpenBB / Chainalysis feeds using API keys.
-- Expand coverage catalogue with real-time status (insurance TVL, utilization).
-- Add automated tests (unit + integration) for the AI pipeline and API responses.
-- Deploy to Vercel with cron hitting /api/cron/ai-signal hourly.
+- Swap mocks for live OpenBB and Chainalysis integrations when API keys are available.
+- Expand the coverage catalogue with live TVL and utilisation feeds.
+- Add unit and integration tests for the strategy pipeline, API routes, and UI data hooks.
+- Expose ETH strategy outputs alongside BTC on the AI dashboard.
