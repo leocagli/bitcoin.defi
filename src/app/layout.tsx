@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { StacksProvider } from '@/components/providers/StacksProvider';
+import { LanguageProvider } from '@/components/providers/LanguageProvider';
 import { TopNav } from '@/components/navigation/TopNav';
 
 const geistSans = Geist({
@@ -30,10 +31,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <StacksProvider>
-          <TopNav />
-          <main className="bg-slate-950 min-h-screen">{children}</main>
-        </StacksProvider>
+        <LanguageProvider>
+          <StacksProvider>
+            <TopNav />
+            <main className="bg-slate-950 min-h-screen">{children}</main>
+          </StacksProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

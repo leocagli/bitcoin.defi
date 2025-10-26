@@ -9,6 +9,8 @@ import { BacktestChart } from '@/components/dashboard/BacktestChart';
 import { RiskControls } from '@/components/dashboard/RiskControls';
 import { AllocationPanel } from '@/components/dashboard/AllocationPanel';
 import { AiSignalPanel } from '@/components/dashboard/AiSignalPanel';
+import { QuickAllocateCard } from '@/components/dashboard/QuickAllocateCard';
+import { PythOracleCard } from '@/components/dashboard/PythOracleCard';
 
 export function Dashboard() {
   const [activeStrategyId, setActiveStrategyId] = useState(strategyData[0]?.id);
@@ -34,6 +36,10 @@ export function Dashboard() {
       <Hero />
       <OverviewStats strategies={strategyData} />
       <AiSignalPanel />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <QuickAllocateCard />
+        <PythOracleCard asset="BTC" />
+      </div>
 
       <section className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

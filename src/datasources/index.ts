@@ -1,3 +1,4 @@
+import { getLatestPythPrice } from '@/lib/stacks/pyth';
 import type { PerpMetrics } from '@/types/ai-signal';
 
 const DEFAULT_LOOKBACK = 64;
@@ -46,6 +47,7 @@ type AssetMetadata = {
   coingeckoKey: string;
   binanceSymbol: string;
   finvizCode: string;
+  pythAsset: string;
 };
 
 const ASSET_METADATA: Record<string, AssetMetadata> = {
@@ -54,12 +56,14 @@ const ASSET_METADATA: Record<string, AssetMetadata> = {
     coingeckoKey: 'btc',
     binanceSymbol: 'BTCUSDT',
     finvizCode: 'BTC',
+    pythAsset: 'BTC',
   },
   ETH: {
     coingeckoId: 'ethereum',
     coingeckoKey: 'eth',
     binanceSymbol: 'ETHUSDT',
     finvizCode: 'ETH',
+    pythAsset: 'ETH',
   },
 };
 
@@ -78,9 +82,11 @@ const buildMockMarketSeries = (
   asset: string,
   length: number,
   frequencyMinutes: number,
+  basePrice?: number,
 ): MarketPoint[] => {
   const series: MarketPoint[] = [];
-  let price = 100 + deterministicRandom(`${asset}:price-base`, 0) * 20;
+  const fallbackBase = 100 + deterministicRandom(`${asset}:price-base`, 0) * 20;
+  let price = Number.isFinite(basePrice) && (basePrice ?? 0) > 0 ? (basePrice as number) : fallbackBase;
   const now = Date.now();
   for (let index = 0; index < length; index += 1) {
     const timestamp = now - (length - index) * frequencyMinutes * 60 * 1000;
@@ -251,7 +257,9 @@ const fetchCoingeckoMarket = async (
     return series;
   } catch (error) {
     console.warn('[datasource] Coingecko market fetch failed, using fallback', error);
-    return buildMockMarketSeries(metadata.binanceSymbol, lookback + 1, frequencyMinutes);
+    const oracleSample = await getLatestPythPrice(metadata.pythAsset).catch(() => undefined);
+    const anchor = oracleSample?.normalizedPrice;
+    return buildMockMarketSeries(metadata.binanceSymbol, lookback + 1, frequencyMinutes, anchor);
   }
 };
 
@@ -360,7 +368,16 @@ const buildMarketContext = async (
     return cached;
   }
 
-  const [marketSeries, fundingSeries, openInterestSeries, openInterestSnapshot, premiumIndex, dominance, finvizPerf] =
+  const [
+    marketSeries,
+    fundingSeries,
+    openInterestSeries,
+    openInterestSnapshot,
+    premiumIndex,
+    dominance,
+    finvizPerf,
+    oracleSample,
+  ] =
     await Promise.all([
       fetchCoingeckoMarket(metadata, lookback, frequencyMinutes),
       fetchFundingRates(metadata, Math.max(lookback, 64)),
@@ -369,6 +386,7 @@ const buildMarketContext = async (
       fetchPremiumIndex(metadata),
       fetchDominance(metadata),
       fetchFinvizPerformance(metadata),
+      getLatestPythPrice(metadata.pythAsset).catch(() => undefined),
     ]);
 
   const targetLength = lookback + 1;
@@ -476,6 +494,18 @@ const buildMarketContext = async (
     }
   }
 
+  const fallbackPrice = prices.length ? prices[prices.length - 1] : undefined;
+  const oracleSource = oracleSample ? ('pyth' as const) : ('mock' as const);
+  const oraclePrice = oracleSample?.normalizedPrice ?? fallbackPrice;
+  const oracleConfidence = oracleSample
+    ? oracleSample.conf * Math.pow(10, oracleSample.expo)
+    : undefined;
+  const oracleUpdatedAt =
+    oracleSample?.updatedAtIso ??
+    (marketPoints.length
+      ? new Date(marketPoints[marketPoints.length - 1].time).toISOString()
+      : undefined);
+
   const perpMetrics: PerpMetrics = {
     asset,
     fundingRate: Number(latestFundingRate.toFixed(6)),
@@ -491,6 +521,10 @@ const buildMarketContext = async (
     basis: Number(basis.toFixed(6)),
     hourlyVolume: Math.round(marketPoints[marketPoints.length - 1]?.volume ?? 0),
     timestamp: new Date().toISOString(),
+    oraclePrice,
+    oracleConfidence,
+    oracleSource,
+    oracleUpdatedAt,
   };
 
   const context: MarketContext = {

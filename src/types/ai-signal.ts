@@ -8,6 +8,10 @@ export type PerpMetrics = {
   basis: number;
   hourlyVolume: number;
   timestamp: string;
+  oraclePrice?: number;
+  oracleConfidence?: number;
+  oracleSource?: 'pyth' | 'mock';
+  oracleUpdatedAt?: string;
 };
 
 export type AiSignalBase = {
@@ -29,13 +33,18 @@ export type AiSignalBase = {
 export type AiSignalSnapshot = AiSignalBase & {
   explanation: string;
   disclaimer: string;
-  perpMetrics?: {
-    fundingRate: number;
-    openInterestChange: number;
-    openInterest: number;
-    basis: number;
-    hourlyVolume: number;
-  };
+  perpMetrics?: Pick<
+    PerpMetrics,
+    | 'fundingRate'
+    | 'openInterestChange'
+    | 'openInterest'
+    | 'basis'
+    | 'hourlyVolume'
+    | 'oraclePrice'
+    | 'oracleConfidence'
+    | 'oracleSource'
+    | 'oracleUpdatedAt'
+  >;
 };
 
 export type BacktestSeriesPoint = {

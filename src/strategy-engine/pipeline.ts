@@ -1,5 +1,5 @@
 import { getMarketWindow, getPerpMetrics, getRecentPrices } from '@/datasources';
-import type { AiSignalBase, RiskProfile } from '@/types/ai-signal';
+import type { AiSignalBase, PerpMetrics, RiskProfile } from '@/types/ai-signal';
 
 import { fetchOnchainRisk } from './onchain-risk';
 import {
@@ -20,13 +20,7 @@ export type StrategyStepOptions = {
 export type StrategyStepResult = AiSignalBase & {
   baseWeights: Record<RiskProfile, number>;
   finalWeights: Record<RiskProfile, number>;
-  perpMetrics: {
-    fundingRate: number;
-    openInterestChange: number;
-    openInterest: number;
-    basis: number;
-    hourlyVolume: number;
-  };
+  perpMetrics: PerpMetrics;
 };
 
 const toIsoString = (value?: Date): string => (value ?? new Date()).toISOString();
@@ -83,12 +77,6 @@ export const runStrategyStep = async (
     finalWAgresivo: finalWeights.agresivo,
     baseWeights,
     finalWeights,
-    perpMetrics: {
-      fundingRate: perpMetrics.fundingRate,
-      openInterestChange: perpMetrics.openInterestChange,
-      openInterest: perpMetrics.openInterest,
-      basis: perpMetrics.basis,
-      hourlyVolume: perpMetrics.hourlyVolume,
-    },
+    perpMetrics,
   };
 };

@@ -15,6 +15,7 @@ Use the top navigation to move between dashboards.
 - **Frontend**: Next.js 16 (App Router), React 19, Tailwind CSS v4, Framer Motion transitions.
 - **Wallets**: `@stacks/connect` v8 (Stacks). MetaMask support is optional; disable the extension locally if it spams JSON-RPC errors.
 - **Server/Data**: Lightweight SQLite layer via `src/lib/sqlite.ts` (Prisma replaced) plus deterministic mock fallbacks for Coingecko, Binance, OpenBB, and Chainalysis when API keys are missing.
+- **Stacks integration**: `src/lib/stacks/` centralises network selection and Pyth oracle helpers (read-only price feeds via stacks.js). Configure `PYTH_*` env vars to switch between mainnet/testnet.
 - **Strategy engine**: `strategy-engine/` hosts the TCN stub, volatility targeting, on-chain risk brake, and hourly pipeline orchestrator.
 - **Automation**: `scripts/` wraps setup, seeding, ingestion, and cron trigger helpers.
 
@@ -37,6 +38,16 @@ CHAINALYSIS_RISK_ENDPOINT="https://api.chainalysis.com/v0/exchange-flows/{asset}
 CRON_SECRET=""               # shared secret for /api/cron/ai-signal
 NEXT_PUBLIC_STACKS_NETWORK="mainnet"
 NEXT_PUBLIC_APP_NAME="bitcoin.defi"
+STACKS_API_URL="https://api.mainnet.hiro.so"
+PYTH_CONTRACT_ADDRESS=""           # required to enable on-chain oracle reads (mainnet)
+PYTH_CONTRACT_ADDRESS_TESTNET=""
+PYTH_CONTRACT_NAME="pyth-oracle-v1"
+PYTH_CONTRACT_FUNCTION="get-price"
+PYTH_FEED_ID_BTC="0xe62df6c8b6684ffaa80fe627f9a339b0a8e7f0ede1bba9c0b566b0b6c3f0961a"
+PYTH_FEED_ID_ETH="0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace"
+PYTH_SENDER_ADDRESS="SP000000000000000000002Q6VF78"
+COPY_TRADING_CONTRACT_ADDRESS=""
+COPY_TRADING_CONTRACT_NAME="copy-trading"
 ```
 
 ## One-command local setup
