@@ -1,6 +1,6 @@
 # bitcoin.defi
 
-bitcoin.defi is a Web3 investing console that combines a risk-managed copy trading hub with two data companions: an AI sizing engine and an OpenBB macro dashboard. The product targets Bitcoin L2 (Stacks) users who want transparent sizing, hedging ideas, and coverage options without promising execution or guaranteed yield.
+bitcoin.defi is a Web3 risk-management platform that aspires to deliver Bloomberg-class tooling adapted to crypto rails. The mission is to equip retail investors with the same indicators, coverage terminals, and defensive playbooks that market makers rely on—without requiring centralized intermediaries. Every module is built to help users size exposure, monitor risk, and deploy hedges intelligently across Bitcoin L2 (Stacks) and the broader Web3 ecosystem.
 
 ## Dashboards
 
