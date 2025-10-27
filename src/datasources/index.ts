@@ -1,4 +1,3 @@
-import { getLatestPythPrice } from '@/lib/stacks/pyth';
 import type { PerpMetrics } from '@/types/ai-signal';
 
 const DEFAULT_LOOKBACK = 64;
@@ -69,6 +68,39 @@ const ASSET_METADATA: Record<string, AssetMetadata> = {
 
 const requestCache = new Map<string, { data: unknown; expiry: number }>();
 const contextCache = new Map<MarketContextKey, MarketContext>();
+
+type PythModule = typeof import('@/lib/stacks/pyth');
+
+let pythModulePromise: Promise<PythModule> | null = null;
+
+const loadPythModule = async (): Promise<PythModule | null> => {
+  if (!pythModulePromise) {
+    pythModulePromise = import('@/lib/stacks/pyth');
+  }
+  try {
+    return await pythModulePromise;
+  } catch (error) {
+    pythModulePromise = null;
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[datasource] Failed to load Pyth module', error);
+    }
+    return null;
+  }
+};
+
+const fetchOracleSample = async (asset: string) => {
+  try {
+    const module = await loadPythModule();
+    if (!module) return undefined;
+    const sample = await module.getLatestPythPrice(asset);
+    return sample ?? undefined;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[datasource] Pyth oracle request failed', error);
+    }
+    return undefined;
+  }
+};
 
 const deterministicRandom = (seed: string, index: number): number => {
   const hash = seed
@@ -257,7 +289,7 @@ const fetchCoingeckoMarket = async (
     return series;
   } catch (error) {
     console.warn('[datasource] Coingecko market fetch failed, using fallback', error);
-    const oracleSample = await getLatestPythPrice(metadata.pythAsset).catch(() => undefined);
+    const oracleSample = await fetchOracleSample(metadata.pythAsset);
     const anchor = oracleSample?.normalizedPrice;
     return buildMockMarketSeries(metadata.binanceSymbol, lookback + 1, frequencyMinutes, anchor);
   }
@@ -386,7 +418,7 @@ const buildMarketContext = async (
       fetchPremiumIndex(metadata),
       fetchDominance(metadata),
       fetchFinvizPerformance(metadata),
-      getLatestPythPrice(metadata.pythAsset).catch(() => undefined),
+      fetchOracleSample(metadata.pythAsset),
     ]);
 
   const targetLength = lookback + 1;

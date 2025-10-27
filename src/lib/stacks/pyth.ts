@@ -1,5 +1,5 @@
 import { hexToBytes } from '@stacks/common';
-import { bufferCV, cvToJSON, fetchCallReadOnlyFunction } from '@stacks/transactions';
+import { createRequire } from 'node:module';
 
 import {
   getStacksEnvironment,
@@ -23,6 +23,40 @@ type CacheEntry = {
 };
 
 const priceCache = new Map<string, CacheEntry>();
+
+const requireModule = createRequire(process.cwd() + '/');
+const STACKS_TRANSACTIONS_MODULE_ID = ['@stacks', 'transactions'].join('/');
+
+type TransactionsExports = {
+  bufferCV: (value: Uint8Array) => unknown;
+  cvToJSON: (cv: unknown) => unknown;
+  fetchCallReadOnlyFunction: (options: {
+    contractAddress: string;
+    contractName: string;
+    functionName: string;
+    functionArgs: unknown[];
+    network: unknown;
+    senderAddress: string;
+  }) => Promise<unknown>;
+};
+
+let transactionsModule: TransactionsExports | null | undefined;
+
+const loadTransactionsModule = (): TransactionsExports | null => {
+  if (transactionsModule !== undefined) {
+    return transactionsModule;
+  }
+  try {
+    transactionsModule = requireModule(STACKS_TRANSACTIONS_MODULE_ID) as TransactionsExports;
+    return transactionsModule;
+  } catch (error) {
+    transactionsModule = null;
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[pyth] Failed to load stacks transactions module', error);
+    }
+    return null;
+  }
+};
 
 export type OraclePriceSample = {
   asset: string;
@@ -149,6 +183,12 @@ export const getLatestPythPrice = async (
   const contractName = resolveContractName();
   const functionName = resolveFunctionName();
   const network = getStacksNetwork(environment);
+  const transactions = loadTransactionsModule();
+  if (!transactions) {
+    priceCache.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS });
+    return undefined;
+  }
+  const { bufferCV, cvToJSON, fetchCallReadOnlyFunction } = transactions;
 
   try {
     const result = await fetchCallReadOnlyFunction({

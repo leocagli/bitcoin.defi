@@ -1,7 +1,12 @@
-import { AnchorMode, boolCV, uintCV } from '@stacks/transactions';
 import { openContractCall } from '@stacks/connect';
 
 import type { StacksNetwork } from '@stacks/network';
+
+type TransactionsExports = typeof import('@stacks/transactions');
+
+const loadTransactions = async (): Promise<TransactionsExports> => {
+  return import('@stacks/transactions');
+};
 
 export type AllocateParams = {
   network: StacksNetwork;
@@ -36,6 +41,7 @@ export const allocateToStrategy = async ({
   stopLossBps,
   autoRebalance,
 }: AllocateParams) => {
+  const { AnchorMode, boolCV, uintCV } = await loadTransactions();
   const { address, name } = resolveContractPrincipal();
 
   const functionArgs = [

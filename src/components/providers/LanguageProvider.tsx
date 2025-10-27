@@ -42,8 +42,9 @@ export function LanguageProvider({ children }: PropsWithChildren) {
   }, []);
 
   const toggleLanguage = useCallback(() => {
-    setLanguage((prev) => (prev === 'es' ? 'en' : 'es'));
-  }, [setLanguage]);
+    const next = language === 'es' ? 'en' : 'es';
+    setLanguage(next);
+  }, [language, setLanguage]);
 
   const value = useMemo<LanguageContextValue>(
     () => ({

@@ -28,8 +28,9 @@ export const getStacksNetwork = (
     process.env.STACKS_API_URL ??
     (env === 'testnet' ? DEFAULT_TESTNET_URL : DEFAULT_MAINNET_URL);
 
-  return createNetwork({
-    network: env === 'testnet' ? STACKS_TESTNET : STACKS_MAINNET,
-    url,
-  });
+  const networkBase = env === 'testnet' ? STACKS_TESTNET : STACKS_MAINNET;
+  const networkInstance = createNetwork(networkBase);
+  networkInstance.client.baseUrl = url;
+  return networkInstance;
 };
+

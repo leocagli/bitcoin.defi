@@ -58,9 +58,7 @@ export const QuickAllocateCard = () => {
     }
     try {
       await allocateToStrategy({
-        network,
-        stxAddress: account.address,
-        strategyId,
+        network,        strategyId,
         amountUstx: BigInt(amountUstx),
         riskMultiplierBps: riskBps,
         stopLossBps,
@@ -147,3 +145,5 @@ export const QuickAllocateCard = () => {
     </div>
   );
 };
+
+

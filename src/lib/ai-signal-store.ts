@@ -159,14 +159,14 @@ export const generateAndPersistSignal = async (asset: string): Promise<AiSignalS
 
 export const getLatestAiSignal = async (asset: string): Promise<AiSignalSnapshot> => {
   const db = getDb();
-  const statement = db.prepare<AiSignalRow>(`
+  const statement = db.prepare<[string], AiSignalRow>(`
     SELECT * FROM "AiSignal"
     WHERE "asset" = ?
     ORDER BY "timestamp" DESC
     LIMIT 1
   `);
 
-  const row = statement.get(asset) as AiSignalRow | undefined;
+  const row = statement.get(asset);
   if (row) {
     return rowToSnapshot(row);
   }
@@ -198,15 +198,15 @@ export const getAiSignalHistory = async (
     ORDER BY "timestamp" ASC
   `;
 
-  const rows = db.prepare(query).all(...params) as AiSignalRow[];
+  const statementHistory = db.prepare<(string | number)[], AiSignalRow>(query);
+  const rows = statementHistory.all(...params);
   return rows.map(rowToSnapshot);
 };
 
 export const getBacktestStat = async (asset: string) => {
   const db = getDb();
-  const row = db
-    .prepare<BacktestStatRow>(`SELECT * FROM "BacktestStat" WHERE "asset" = ? LIMIT 1`)
-    .get(asset) as BacktestStatRow | undefined;
+  const backtestStatement = db.prepare<[string], BacktestStatRow>(`SELECT * FROM "BacktestStat" WHERE "asset" = ? LIMIT 1`);
+  const row = backtestStatement.get(asset);
 
   if (!row) {
     return undefined;
@@ -225,3 +225,4 @@ export const getBacktestStat = async (asset: string) => {
     disclaimer: row.disclaimer,
   };
 };
+

@@ -25,6 +25,10 @@ export type CurrentAiSignalResponse = {
     basis: number;
     hourlyVolume: number;
     timestamp?: string;
+    oraclePrice?: number;
+    oracleConfidence?: number;
+    oracleSource?: 'pyth' | 'mock';
+    oracleUpdatedAt?: string;
   };
 };
 
